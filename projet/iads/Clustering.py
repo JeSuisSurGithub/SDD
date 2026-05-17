@@ -325,4 +325,150 @@ class DistanceMinkowski(Distance):
         """
         return super().__str__()
 
+
+
+
+
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+
+def affiche_resultat(Base,Centres,Affect):
+    """ Arguments :
+            - ensemble d'exemples
+            - ensemble de centroides
+            - matrice d'affectation                
+    """
     
+    # on transforme le colormap en couleurs utilisable par plt.scatter:
+    couleurs = cm.tab20(np.linspace(0, 1, 20))
+    
+    print("nombre de couleurs différentes",len(couleurs))   
+
+    i = 0
+    for cle in Affect:
+        data = np.array(Base)[Affect[cle]]
+        plt.scatter(data[:,0],data[:,1],color=couleurs[i])
+        i += 1
+
+    ## Centres
+    plt.scatter(Centres[:,0],Centres[:,1],color='r',marker='x')
+    
+
+
+class KMoyennes():
+    """ Classe implémentant l'algorithme des K-moyennes
+    """
+    def __init__(self, K, distance=DistanceEuclidienne() ):
+        """ Argument:
+                - K (int) : nombre de clusters voulus
+                - distance (Distance): mesure de distance entre 2 exemples
+                  par défaut: distance euclidienne
+        """
+        if K<1:
+            raise TypeError("KMoyennes: K doit être strictement plus grand que 0 !")
+        self.__K = K 
+        self.__distance = distance
+
+    def get_K(self):
+        """ Accesseur de la variable __K
+        """
+        return self.__K
+
+    def __str__(self) -> str:
+        """ rend une chaîne de caractères (méthode toString)
+            Par exemple, pour afficher des informations sur l'objet
+        """
+        return f"KMoyennes (K={self.__K}, {self.__distance})"
+ 
+    def inertie_cluster(self,Ens):
+        """ Arguments :
+                - Ens: array qui représente un cluster
+            Hypothèse: len(Ens)> >= 2
+            L'inertie est la somme (au carré) des distances des points au centroide.
+        """
+        data = np.array(Ens)
+        centroide = np.mean(data, axis=0)
+        return np.sum(self.__distance.calcule(centroide, data)**2)
+    
+    def init(self,Ens):
+        """ Argument :
+                - Ens: Array contenant n exemples
+        """
+        ind = np.arange(0, len(Ens), 1)
+        np.random.shuffle(ind)
+        return np.array(Ens)[ind[:self.__K]]
+
+
+    def plus_proche(self,exemple,Centres):
+        """ Arguments :
+                - exemple : Array contenant un exemple
+                - Centres : Array contenant les K centres
+        """
+
+        # print("centres: ", Centres)
+        # print("ex: ", exemple)
+        return np.argsort(self.__distance.calcule(np.array(exemple), np.array(Centres)))[0]
+
+
+    def affecte_cluster(self,Base,Centres):
+        """ Arguments :
+                - Base: Array contenant la base d'apprentissage
+                - Centres : Array contenant des centroides
+        """
+        d = dict()
+        for i in range(0,len(Base)):
+            c = self.plus_proche(Base.iloc[i],Centres)
+            if c not in d:
+                d[c] = list()
+            d[c].append(i)
+        return d
+        
+                       
+    def centroides(self,Base,U):
+        """ Arguments :
+                - Base : Array contenant la base d'apprentissage
+                - U : Dictionnaire d'affectation
+        """ 
+
+        # print(U)
+        res = []
+        for cleCluster in U:
+            data = np.array(Base)[U[cleCluster]]
+            centroide = np.mean(data, axis=0)
+            res.append(centroide)
+            
+        return res
+
+    def inertie_globale(self,Base, U):
+        """ Arguments :
+                - Base : Array pour la base d'apprentissage
+                - U : Dictionnaire d'affectation
+        """      
+        sumInertie = 0
+        for cleCluster in U:
+            data = np.array(Base)[U[cleCluster]]
+            sumInertie += self.inertie_cluster(data)
+        return sumInertie
+            
+
+    def train(self,Base, epsilon, iter_max, verbose=False):
+        """ Arguments :
+                - Base : Array pour la base d'apprentissage
+                - epsilon : réel >0
+                - iter_max : entier >1
+                - verbose: pour afficher des messages de débuggage si besoin
+        """        
+        centres = self.init(Base)
+        lastInertieGlobal = None
+        for i in range(iter_max):
+            U = self.affecte_cluster(Base, centres)
+            centres = self.centroides(Base, U)
+            newInertieGlobal = self.inertie_globale(Base, U)
+            if lastInertieGlobal != None:
+                diff = abs(lastInertieGlobal - newInertieGlobal)
+                if verbose:
+                    print(f"iteration n°{i} : Inertie = {newInertieGlobal} Difference =  {diff}")
+                if diff < epsilon:
+                    break
+            lastInertieGlobal = newInertieGlobal
+        return np.array(centres), self.affecte_cluster(Base, centres)

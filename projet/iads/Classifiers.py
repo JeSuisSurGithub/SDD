@@ -955,3 +955,8 @@ class ClassifierArbreNumerique(Classifier):
             Cette fonction modifie GTree par effet de bord
         """
         self.__racine.to_graph(GTree)
+
+
+
+
+
