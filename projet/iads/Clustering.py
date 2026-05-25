@@ -356,7 +356,7 @@ def affiche_resultat(Base, Centres, Affect):
 
     plt.title("Résultat du Clustering (K-Means)")
     plt.grid(True)
-    # plt.legend() # Optionnel : si tu veux afficher la légende des clusters
+    plt.savefig("clust.png")
     plt.show()
 
 class KMoyennes():
