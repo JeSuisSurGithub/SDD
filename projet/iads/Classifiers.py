@@ -23,123 +23,6 @@ def classe_majoritaire(Y):
     classes, nb = np.unique(Y, return_counts=True)
     return classes[np.argmax(nb)]
 
-def shannon(P,k=2):
-    """ list[Number] * int -> float
-        Hypothèse: P est une distribution de probabilités et k>0
-        - P: distribution de probabilités
-        - k: base du logarithme à utiliser, par défaut 2
-        rend la valeur de l'entropie de Shannon correspondante
-    """
-    P = np.array(P)
-    if k != 0 and k != 1:
-        return -np.sum(P[P != 0] * np.log(P[P != 0]) / np.log(k) )
-    return 0.0
-
-def entropie(Y, k=2):
-    """ Y : (array) : ensemble de labels de classe
-        Hypothèse: k>0
-        - k: base du logarithme à utiliser, par défaut 2
-        rend l'entropie de l'ensemble Y
-    """
-    classes, nb = np.unique(Y, return_counts=True)
-    nbTot = np.sum(nb)
-    probas = nb / nbTot
-
-    k = len(nb)
-    return shannon(probas, k)
-
-class NoeudCategoriel:
-    """ Classe pour représenter des noeuds d'un arbre de décision
-    """
-    def __init__(self, num_att=-1, nom=''):
-        """ Constructeur: il prend en argument
-            - num_att (int) : le numéro de l'attribut auquel il se rapporte: de 0 à ...
-              si le noeud se rapporte à la classe, le numéro est -1, on n'a pas besoin
-              de le préciser
-            - nom (str) : une chaîne de caractères donnant le nom de l'attribut si
-              il est connu (sinon, on ne met rien et le nom sera donné de façon 
-              générique: "att_Numéro")
-        """
-        self.__attribut = num_att    # numéro de l'attribut
-        if (nom == ''):            # son nom si connu
-            self.__nom_attribut = 'att_'+str(num_att)
-        else:
-            self.__nom_attribut = nom 
-        self.__Les_fils = None       # aucun fils à la création, ils seront ajoutés
-        self.__classe   = None       # valeur de la classe si c'est une feuille
-
-    def getattribut(self):
-        return self.__attribut
-        
-    def est_feuille(self):
-        """ rend True si l'arbre est une feuille 
-            c'est une feuille s'il n'a aucun fils
-        """
-        return self.__Les_fils == None
-    
-    def ajoute_fils(self, valeur, Fils):
-        """ valeur : valeur de l'attribut de ce noeud qui doit être associée à Fils
-                     le type de cette valeur dépend de la base
-            Fils (NoeudCategoriel) : un nouveau fils pour ce noeud
-            Les fils sont stockés sous la forme d'un dictionnaire:
-            Dictionnaire {valeur_attribut : NoeudCategoriel}
-        """
-        if self.__Les_fils == None:
-            self.__Les_fils = dict()
-        self.__Les_fils[valeur] = Fils
-        # Rem: attention, on ne fait aucun contrôle, la nouvelle association peut
-        # écraser une association existante.
-    
-    def ajoute_feuille(self,classe):
-        """ classe: valeur de la classe
-            Ce noeud devient un noeud feuille
-        """
-        self.__classe    = classe
-        self.__Les_fils  = None   # normalement, pas obligatoire ici, c'est pour être sûr
-        
-    def classifie(self, exemple):
-        """ exemple : numpy.array
-            rend la classe de l'exemple 
-            on rend la valeur None si l'exemple ne peut pas être classé (cf. les questions
-            posées en fin de ce notebook)
-        """
-        if self.est_feuille():
-            return self.__classe
-        if exemple[self.__attribut] in self.__Les_fils:
-            # descente récursive dans le noeud associé à la valeur de l'attribut
-            # pour cet exemple:
-            return self.__Les_fils[exemple[self.__attribut]].classifie(exemple)
-        else:
-            # Cas particulier : on ne trouve pas la valeur de l'exemple dans la liste des
-            # fils du noeud... Voir la fin de ce notebook pour essayer de résoudre ce mystère...
-            print('\t*** Warning: attribut ',self.__nom_attribut,' -> Valeur inconnue: ',exemple[self.__attribut])
-            return None
-    
-    def compte_feuilles(self):
-        """ rend le nombre de feuilles sous ce noeud
-        """
-        if self.est_feuille():
-            return 1
-        total = 0
-        for noeud in self.__Les_fils:
-            total += self.__Les_fils[noeud].compte_feuilles()
-        return total
-     
-    def to_graph(self, g, prefixe='A'):
-        """ construit une représentation de l'arbre pour pouvoir l'afficher graphiquement
-            Cette fonction ne nous intéressera pas plus que ça, elle ne sera donc pas expliquée            
-        """
-        if self.est_feuille():
-            g.node(prefixe,str(self.__classe),shape='box')
-        else:
-            g.node(prefixe, self.__nom_attribut)
-            i =0
-            for (valeur, sous_arbre) in self.__Les_fils.items():
-                sous_arbre.to_graph(g,prefixe+str(i))
-                g.edge(prefixe,prefixe+str(i), str(valeur))
-                i = i+1        
-        return g
-
 class Classifier(ABC):
     """ Classe (abstraite) pour représenter un classifieur
         Attention: cette classe est ne doit pas être instanciée.
@@ -636,7 +519,121 @@ class ClassifierMultiOAA(Classifier):
 
 
 
+def shannon(P,k=2):
+    """ list[Number] * int -> float
+        Hypothèse: P est une distribution de probabilités et k>0
+        - P: distribution de probabilités
+        - k: base du logarithme à utiliser, par défaut 2
+        rend la valeur de l'entropie de Shannon correspondante
+    """
+    P = np.array(P)
+    if k != 0 and k != 1:
+        return -np.sum(P[P != 0] * np.log(P[P != 0]) / np.log(k) )
+    return 0.0
 
+def entropie(Y, k=2):
+    """ Y : (array) : ensemble de labels de classe
+        Hypothèse: k>0
+        - k: base du logarithme à utiliser, par défaut 2
+        rend l'entropie de l'ensemble Y
+    """
+    classes, nb = np.unique(Y, return_counts=True)
+    probas = nb / Y.size
+
+    k = len(nb)
+    return shannon(probas, k)
+
+class NoeudCategoriel:
+    """ Classe pour représenter des noeuds d'un arbre de décision
+    """
+    def __init__(self, num_att=-1, nom=''):
+        """ Constructeur: il prend en argument
+            - num_att (int) : le numéro de l'attribut auquel il se rapporte: de 0 à ...
+              si le noeud se rapporte à la classe, le numéro est -1, on n'a pas besoin
+              de le préciser
+            - nom (str) : une chaîne de caractères donnant le nom de l'attribut si
+              il est connu (sinon, on ne met rien et le nom sera donné de façon 
+              générique: "att_Numéro")
+        """
+        self.__attribut = num_att    # numéro de l'attribut
+        if (nom == ''):            # son nom si connu
+            self.__nom_attribut = 'att_'+str(num_att)
+        else:
+            self.__nom_attribut = nom 
+        self.__Les_fils = None       # aucun fils à la création, ils seront ajoutés
+        self.__classe   = None       # valeur de la classe si c'est une feuille
+
+    def getattribut(self):
+        return self.__attribut
+        
+    def est_feuille(self):
+        """ rend True si l'arbre est une feuille 
+            c'est une feuille s'il n'a aucun fils
+        """
+        return self.__Les_fils == None
+    
+    def ajoute_fils(self, valeur, Fils):
+        """ valeur : valeur de l'attribut de ce noeud qui doit être associée à Fils
+                     le type de cette valeur dépend de la base
+            Fils (NoeudCategoriel) : un nouveau fils pour ce noeud
+            Les fils sont stockés sous la forme d'un dictionnaire:
+            Dictionnaire {valeur_attribut : NoeudCategoriel}
+        """
+        if self.__Les_fils == None:
+            self.__Les_fils = dict()
+        self.__Les_fils[valeur] = Fils
+        # Rem: attention, on ne fait aucun contrôle, la nouvelle association peut
+        # écraser une association existante.
+    
+    def ajoute_feuille(self,classe):
+        """ classe: valeur de la classe
+            Ce noeud devient un noeud feuille
+        """
+        self.__classe    = classe
+        self.__Les_fils  = None   # normalement, pas obligatoire ici, c'est pour être sûr
+        
+    def classifie(self, exemple):
+        """ exemple : numpy.array
+            rend la classe de l'exemple 
+            on rend la valeur None si l'exemple ne peut pas être classé (cf. les questions
+            posées en fin de ce notebook)
+        """
+        if self.est_feuille():
+            return self.__classe
+        if exemple[self.__attribut] in self.__Les_fils:
+            # descente récursive dans le noeud associé à la valeur de l'attribut
+            # pour cet exemple:
+            return self.__Les_fils[exemple[self.__attribut]].classifie(exemple)
+        else:
+            # Cas particulier : on ne trouve pas la valeur de l'exemple dans la liste des
+            # fils du noeud... Voir la fin de ce notebook pour essayer de résoudre ce mystère...
+            print('\t*** Warning: attribut ',self.__nom_attribut,' -> Valeur inconnue: ',exemple[self.__attribut])
+            return None
+    
+    def compte_feuilles(self):
+        """ rend le nombre de feuilles sous ce noeud
+        """
+        if self.est_feuille():
+            return 1
+        total = 0
+        for noeud in self.__Les_fils:
+            total += self.__Les_fils[noeud].compte_feuilles()
+        return total
+     
+    def to_graph(self, g, prefixe='A'):
+        """ construit une représentation de l'arbre pour pouvoir l'afficher graphiquement
+            Cette fonction ne nous intéressera pas plus que ça, elle ne sera donc pas expliquée            
+        """
+        if self.est_feuille():
+            g.node(prefixe,str(self.__classe),shape='box')
+        else:
+            g.node(prefixe, self.__nom_attribut)
+            i =0
+            for (valeur, sous_arbre) in self.__Les_fils.items():
+                sous_arbre.to_graph(g,prefixe+str(i))
+                g.edge(prefixe,prefixe+str(i), str(valeur))
+                i = i+1        
+        return g
 
 
 
@@ -768,7 +765,6 @@ def construit_AD_num(X,Y,epsilon,LNoms = [], verbose=False):
         
     return noeud
 
-
 import graphviz as gv   # si ce n'a pas déjà été fait...
 
 class NoeudNumerique:
@@ -883,10 +879,6 @@ class NoeudNumerique:
             g.edge(prefixe,prefixe+"d", '>'+ str(self.__seuil))                
         return g
 
-
-
-
-
 class ClassifierArbreNumerique(Classifier):
     """ Classe pour représenter un classifieur par arbre de décision numérique
     """
@@ -942,7 +934,8 @@ class ClassifierArbreNumerique(Classifier):
             label_set: ndarray avec les labels correspondants
             Hypothèse: desc_set et label_set ont le même nombre de lignes
         """
-        return np.mean(label_set==np.apply_along_axis(self.predict, 1, desc_set))
+        predictions = np.array([self.predict(x) for x in desc_set])
+        return np.mean(label_set == predictions)
 
 
     def number_leaves(self):

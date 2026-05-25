@@ -332,28 +332,32 @@ class DistanceMinkowski(Distance):
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 
-def affiche_resultat(Base,Centres,Affect):
+def affiche_resultat(Base, Centres, Affect):
     """ Arguments :
-            - ensemble d'exemples
-            - ensemble de centroides
-            - matrice d'affectation                
+            - ensemble d'exemples (Base)
+            - ensemble de centroides (Centres)
+            - matrice/dictionnaire d'affectation (Affect)               
     """
-    
-    # on transforme le colormap en couleurs utilisable par plt.scatter:
     couleurs = cm.tab20(np.linspace(0, 1, 20))
     
-    print("nombre de couleurs différentes",len(couleurs))   
-
+    plt.figure()
+    
     i = 0
     for cle in Affect:
         data = np.array(Base)[Affect[cle]]
-        plt.scatter(data[:,0],data[:,1],color=couleurs[i])
+        plt.scatter(data[:,0], data[:,1], color=couleurs[i], alpha=0.5, s=10, label=f"Cluster {cle}")
         i += 1
 
-    ## Centres
-    plt.scatter(Centres[:,0],Centres[:,1],color='r',marker='x')
-    
+    i = 0
+    for cle in Affect:
+        plt.scatter(Centres[i, 0], Centres[i, 1], color=couleurs[i], marker='x', alpha=1, s=600, linewidths=10)
+        
+        i += 1
 
+    plt.title("Résultat du Clustering (K-Means)")
+    plt.grid(True)
+    # plt.legend() # Optionnel : si tu veux afficher la légende des clusters
+    plt.show()
 
 class KMoyennes():
     """ Classe implémentant l'algorithme des K-moyennes

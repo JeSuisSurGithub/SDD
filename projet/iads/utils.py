@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 def getSampleDataset(X, Y, class1, class2, size):  
     X02 = X
     Y02 = Y
-    if class1 != None and class2 != None:
-        X02 = X[(Y == 0) + (Y == 2)]
-        Y02 = (Y == 0) + (-1) * (Y == 2)
-        Y02 = Y02[Y02 != 0]
+    if class1 is not None and class2 is not None:
+        masque = (Y == class1) + (Y == class2)
+        X02 = X[masque]    
+        Y02 = np.where(Y[masque] == class1, 1, -1)
 
     index = np.random.permutation(len(X02)) # mélange des index
     Xr = X02[index[:size]]
