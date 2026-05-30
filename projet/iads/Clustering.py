@@ -74,7 +74,10 @@ class DistanceEuclidienne(Distance):
             raise TypeError("Argument incorrect: le premier argument doit être un vecteur")
 
         if len(M.shape) == 1:
-            return np.linalg.norm((M - v).to_numpy(), axis=0)
+            try:
+                return np.linalg.norm((M - v).to_numpy(), axis=0)
+            except:
+                return np.linalg.norm((M - v), axis=0)
 
         e = (M-v)**2
         return np.sqrt(np.sum((M-v)**2, axis=1))
